@@ -66,18 +66,27 @@ public class ConnectionManager {
     }
     
     //Envia mensagem para o servidor
-    public void sendMessageToServer(Message message) throws Exception{
-        client.outToServer(Convert.MessageToJson(message));
+    public int sendMessageToAll(Message message) throws Exception{
+        return client.outToServer(Convert.MessageToJson(message));
+    }
+    
+    //Envia mensagem para o servidor
+    public int sendMessageExceptToPort(Message message, int serverPort) throws Exception{
+        return client.outToServerExceptPort(Convert.MessageToJson(message), serverPort);
+    }
+    
+    public int sendMessageToPort(Message message, int serverPort) throws Exception{
+        return client.outToServer(Convert.MessageToJson(message), serverPort);
     }
     
     //Envia ACK para o servidor
-    public void sendACKToServer(ACK ack) throws Exception{
-        client.outToServer(Convert.ACKToJson(ack));
+    public int sendACKToServer(ACK ack) throws Exception{
+        return client.outToServer(Convert.ACKToJson(ack));
     }
     
     //Envia ACK para o servidor
-    public void sendACKToServer(ACK ack, int serverPort) throws Exception{
-        client.outToServer(Convert.ACKToJson(ack), serverPort);
+    public int sendACKToServer(ACK ack, int serverPort) throws Exception{
+        return client.outToServer(Convert.ACKToJson(ack), serverPort);
     }
     
     //Encerra o processo e fecha as conexões

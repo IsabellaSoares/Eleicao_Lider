@@ -20,14 +20,20 @@ public class ACK {
     private int logicalClock; // Clock
     private int requestedResource; //Recurso que o processo quer utilizar
     private int type;
+    private int electionId;
+    private char processName;
+    private int processCapacity;
     
-    public ACK(){}
+    public ACK(){
+        this.processName = ' ';
+    }
     
     public ACK(int senderPid, int destinationPid, int messageId, int type){
         this.senderPid = senderPid;
         this.destinationPid = destinationPid;
         this.messageId = messageId;
         this.type = type;
+        this.processName = ' ';
     }
 
     public int getDestinationPid() {
@@ -76,5 +82,29 @@ public class ACK {
 
     public void setType(int type) {
         this.type = type;
+    }
+
+    public int getElectionId() {
+        return electionId;
+    }
+
+    public void setElectionId(int electionId) {
+        this.electionId = electionId;
+    }
+
+    public char getProcessName() {
+        return processName;
+    }
+
+    public void setProcessName(char processName) {
+        this.processName = processName;
+    }
+
+    public int getProcessCapacity() {
+        return processCapacity;
+    }
+
+    public void setProcessCapacity(int processCapacity) {
+        this.processCapacity = processCapacity;
     }
 }

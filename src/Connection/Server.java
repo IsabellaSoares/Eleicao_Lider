@@ -51,6 +51,7 @@ public class Server {
                 }
             });
             serverThread.start();
+            //System.out.println("[Server] Servidor ligado!");
         } catch (Exception e) {
             server = null;
             e.printStackTrace();

@@ -9,11 +9,9 @@ import Listener.MessageManagerListener;
 import Listener.ServerManagerListener;
 import Manager.ConnectionManager;
 import Manager.MessageManager;
-import Manager.ResourceManager;
-import Model.ACK;
-import Model.Structure;
+import Model.Requisition;
 import Model.Message;
-import Model.Resource;
+import Model.ACK;
 import java.util.List;
 import java.util.Scanner;
 
@@ -34,15 +32,15 @@ public class Process {
     private static int currentLogicalClock = 1;
     private static char name; //Nome do nó
     private static int capacity; //Capacidade do nó
-    private static boolean flagConections = false; //Indica se o nó já criou conexões
+    private static boolean flagConnections = false; //Indica se o nó já criou conexões
     
     // gerenciadores
     private static ConnectionManager manager;
     private static MessageManager sendedRequest;
     private static MessageManager receivedRequest;
-    private static ResourceManager resourceManager;
     
     private static Scanner keyboard;
+    private static Integer father;
     
     public Process(char name, int capacity, int pid, int serverPort, int[] connectionPorts){
         
@@ -50,6 +48,7 @@ public class Process {
         this.capacity = capacity;
         
         // inicializa as variaveis
+        this.father = null;
         this.connectionPorts = connectionPorts;
         this.serverPort = serverPort;
         this.pid = pid;
@@ -57,78 +56,30 @@ public class Process {
         this.manager = new ConnectionManager(serverPort); //Gerenciador de conexão
         this.sendedRequest = new MessageManager(pid);
         this.receivedRequest = new MessageManager(pid);
-        this.resourceManager = new ResourceManager();
         
         // inicializa os listeners
+        // quando uma mensagem enviada recebe todos os acks, esse listener eh chamado
         this.sendedRequest.setListener(new MessageManagerListener() {
             @Override
-            public void notifyProcess(Structure structure) {
-                Message message = structure.getMessage();
-                if(!resourceManager.isUsing(message.getRequestedResource())){
-                    Resource resource = new Resource();
-                    resource.setResourceId(message.getRequestedResource());
-                    
-                    List<Structure> structures = receivedRequest.getMessageList();
-                    for(Structure s : structures){
-                        Message m = s.getMessage();
-                        if(m!=null){
-                            if(m.getRequestedResource()==message.getRequestedResource()){
-                                resource.putMessage(m);
-                            }
-                        }
-                    }
-                    
-                    resourceManager.addResource(resource);
-                    System.out.println("[Log] O processo P"+pid+" começou a usar o recurso "+message.getRequestedResource());
-                } else {
-                    System.out.println("[Log] O processo P"+pid+" já está utilizando o recurso "+message.getRequestedResource());
-                }
+            public void notifyProcess(Requisition requisition) {
+                notificaProcesso(requisition);
             }
         });
         
+        // quando esse processo recebe uma mensagem ou um ack, esse listener eh chamado
         this.manager.setServerManagerListener(new ServerManagerListener() {
             @Override
             public void messageReceived(Message message) {
-                // recebeu uma mensagem
-//                System.out.println("[Log] P"+message.getSenderPid()+" solicitou acesso ao recurso "+message.getRequestedResource());
-                
-                if((message.getType() == 2) && (flagConections == false)) {
-                    for(int i=0; i<connectionPorts.length; i++){
-//                        manager.addConnection(connectionPorts[i]);
-                        System.out.println("Criou conexão com a porta "+ manager.addConnection(connectionPorts[i]));
-                        initConections();
-                        flagConections = true;
-                    }
-                }
-
-//                if(resourceManager.isUsing(message.getRequestedResource())){
-//                    resourceManager.putMessage(message.getRequestedResource(), message);
-//                    sendACK(message, ACK.NACK);
-//                } else if (sendedRequest.isRequestingFor(message.getRequestedResource())) {
-//                    receivedRequest.addMessage(message);
-//                    sendACK(message, ACK.NACK);
-//                } else {
-//                    sendACK(message, ACK.ACK);
-//                }
-//                if(message.getLogicalClock()> currentLogicalClock){
-//                    currentLogicalClock = message.getLogicalClock();
-//                }
+                mensagemRecebida(message);
             }
 
             @Override
             public void ACKReceived(ACK ack) {
-                //Recebeu um ACK
-//                if(ack.getType()==ACK.ACK){
-//                    System.out.println("[Log] Recebeu um 'ACK' de P" + ack.getSenderPid()+" para o recurso "+ack.getRequestedResource()+".");
-//                    sendedRequest.addAck(ack); //Adiciona ACK na lista
-//                } else {
-//                    System.out.println("[Log] Recebeu um 'NACK'. Aguardando o processo P"+ack.getSenderPid()+" terminar de utilizar o recurso "+ack.getRequestedResource()+".");
-//                }
-                    
+//                ackRecebido(ack);
             }
         });
         
-        System.out.println("Iniciou nó "+name+" na porta "+serverPort);
+        System.out.println("[Process] Iniciou nó "+name+" na porta "+serverPort);
     }
     
     public void exec() {
@@ -139,99 +90,217 @@ public class Process {
 
             //Cria conexão com os outros processos
             for(int i=0; i<connectionPorts.length; i++){
-//                manager.addConnection(connectionPorts[i]);
-                System.out.println("Criou conexão com a porta "+ manager.addConnection(connectionPorts[i]));
-                initConections();
-                flagConections = true;
+                System.out.println("[Process] Criou conexão com a porta "+ manager.addConnection(connectionPorts[i]));
             }
+            initConnections();
+            flagConnections = true;
         }
         
-        keyboard.next();
+        System.out.print("\nMenu:\n 0 - Finaliza processo\n 1 - Requisitar eleição\n 2 - Alterar Capacidade\n");
         
-//        System.out.print("\nMenu:\n 0 - Finaliza processo\n 1 - Solicitar acesso\n 2 - Liberar recurso\n");
-        
-//        int option;
-//        do{
-//            option = keyboard.nextInt();
-//            if(option!=0){
-//                switch(option){
-//                    case 1 :
-//                        requestAccess();
-//                        break;
-//                    case 2:
-//                        freeResource();
-//                        break;
-//                }
-//            }
-//        } while(option!=0);
+        int option;
+        do{
+            option = keyboard.nextInt();
+            if(option!=0){
+                switch(option){
+                    case 1 :
+                        requestElection();
+                        break;
+                    case 2:
+                        changeCapacity();
+                        break;
+                }
+            }
+        } while(option!=0);
         
         manager.close();
-        System.out.println("Finalizou nó "+name);
+        System.out.println("[Process] Finalizou nó "+name);
     }
     
     public static void sendACK(Message message, int type){
         try {
-            ACK ack = new ACK();            
+            Message ack = new Message();            
             ack.setMessageId(message.getMessageId());
             ack.setSenderPid(pid);
             ack.setDestinationPid(message.getSenderPid());
             ack.setLogicalClock(message.getLogicalClock());
             ack.setRequestedResource(message.getRequestedResource());
             ack.setType(type);
+            ack.setElectionId(message.getElectionId());
             
-            manager.sendACKToServer(ack, message.getSenderPort());
+            //manager.sendACKToServer(ack, message.getSenderPort());
+            manager.sendMessageToPort(ack, message.getSenderPort());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void requestAccess() {
+    private void requestElection() {
         try{
-            int recurso = 0;
-            System.out.print("Escolha um recurso: ");
-            recurso = keyboard.nextInt();
-            Message m = new Message(recurso, pid, ++currentLogicalClock, serverPort);
-            sendedRequest.addMessage(m);
-            manager.sendMessageToServer(m);
+            Message m = new Message(Message.REQUEST_ELECTION, pid, ++currentLogicalClock, serverPort);
+            m.setElectionId(m.getMessageId());
+            int sended = manager.sendMessageToAll(m);
+            if(sended!=0){
+                sendedRequest.addMessage(m, sended);
+                System.out.println("[Process] Enviou requisição e está aguardando por "+sended+" respostas");
+            }
         } catch (Exception e){
             e.printStackTrace();
         }
     }
     
-    private void initConections() {
+    private void initConnections() {
         try{
-            Message m = new Message(2, pid, ++currentLogicalClock, serverPort);
-//            sendedRequest.addMessage(m);
-            manager.sendMessageToServer(m);
+            Message m = new Message(Message.START_CONNECTIONS, pid, ++currentLogicalClock, serverPort);
+            manager.sendMessageToAll(m);
         } catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    private void freeResource() {
-        if(resourceManager.isEmpty()){
-            System.out.println("Nenhum recurso está sendo utilizado!");
-            return;
-        }
-        System.out.print("Escolha um recurso para liberar: ");
-        resourceManager.printResourceId();
-        System.out.print("\n>> ");
-        
-        int resourceId = keyboard.nextInt();
-        
-        if(resourceManager.isUsing(resourceId)){
-            Resource resource = resourceManager.removeResource(resourceId);
-            if(resource!=null){
-                List<Message> messageList = resource.getMessageList();
-                if(messageList!=null && messageList.size()>0){
-                    for(Message message : messageList){
-                        sendACK(message, ACK.ACK);
-                    }
-                }
-            }
-            System.out.println("[Log] O recurso "+resourceId+" foi liberado.");
-        } else {
-            System.out.println("O recurso "+resourceId+" não está sendo utilizado!");
+    private void changeCapacity() {
+        try{
+            capacity = keyboard.nextInt();
+            System.out.println("[Process] A capacidade foi alterada para: " + capacity);
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
+    
+    private synchronized void mensagemRecebida(Message message) {
+        switch(message.getType()){
+            case Message.REQUEST_ELECTION:
+                System.out.println("[Process] Recebeu requisição de eleição do nó "+message.getSenderPidName()+" com Id de eleição: "+message.getElectionId());
+                if(receivedRequest.existRequisitionFor(message)){
+                    // jah foi recebida uma requisicao para essa eleicao e foi definido o pai desse processo para essa requisicao
+                    // enviar um nack ou ok
+                    System.out.println("[Process] Já foi recebida uma requisição para essa eleição, retorna NACK para o nó " + message.getSenderPidName());
+                    sendACK(message, Message.NACK);
+                } else {
+                    // nova requisicao de eleicao
+                    // salvar essa mensagem na lista de mensagens recebidas
+                    // enviar outra mensagem para as demais conexoes
+                    receivedRequest.addMessage(message, 1);
+                    Message m = new Message(Message.REQUEST_ELECTION, pid, ++currentLogicalClock, serverPort);
+                    m.setElectionId(message.getElectionId());
+                    int sended;
+                    try{
+                        sended = manager.sendMessageExceptToPort(m, message.getSenderPort());
+                    } catch (Exception e){
+                        sended = 0;
+                        e.printStackTrace();
+                    }
+                    if(sended!=0){
+                        sendedRequest.addMessage(m, sended);
+                        System.out.println("[Process] Propagou a eleição e está esperando por "+sended+" respostas");
+                    } else {
+                        System.out.println("[Process] Não propagou a eleição!");
+                    }
+                }
+                
+                break;
+            case Message.START_CONNECTIONS:
+                if(!flagConnections){
+                    for(int i=0; i<connectionPorts.length; i++){
+                        System.out.println("[Process] Criou conexão com a porta "+ manager.addConnection(connectionPorts[i]));
+                    }
+                    initConnections();
+                    flagConnections = true;
+                }
+                break;
+            case Message.ACK:
+                System.out.println("[Process] Recebeu um ACK do nó "+message.getSenderPidName());
+                sendedRequest.addAnswer(message);
+                break;
+            case Message.NACK:
+                System.out.println("[Process] Recebeu um NACK do nó "+message.getSenderPidName());
+                sendedRequest.addAnswer(message);
+                break;
+        }
+    }
+    
+    private void notificaProcesso(Requisition structure) {
+        List<Requisition> lista = receivedRequest.getRequisitionList();
+        boolean flag = false;
+        for(Requisition s : lista){
+            if(s.getElectionId()==structure.getElectionId()){
+                Integer electedNode = pid;
+                Integer electedNodeCapacity = capacity;
+                
+                for(Message m : structure.getAnswerList()){
+                    if(m.getType()==Message.ACK){
+                        if(electedNodeCapacity==null || (electedNodeCapacity<m.getElectedNodeCapacity())){
+                            electedNode = m.getElectedNode();
+                            electedNodeCapacity = m.getElectedNodeCapacity();
+                        }
+                    }
+                }
+                
+                Message message = s.getMessage();
+                Message ack = new Message();            
+                ack.setMessageId(message.getMessageId());
+                ack.setSenderPid(pid);
+                ack.setDestinationPid(message.getSenderPid());
+                ack.setLogicalClock(message.getLogicalClock());
+                ack.setRequestedResource(message.getRequestedResource());
+                ack.setType(Message.ACK);
+                ack.setElectionId(message.getElectionId());
+                ack.setElectedNode(electedNode);
+                ack.setElectedNodeCapacity(electedNodeCapacity);
+                try{
+                    manager.sendMessageToPort(ack, message.getSenderPort());
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+                System.out.println("[Process] Recebeu todas as respostas, retorna um ACK para o nó "+message.getSenderPidName());
+                flag = true;
+            }
+        }
+        
+        if(!flag){
+            List<Requisition> sendedRequisitions = sendedRequest.getRequisitionList();
+            for(Requisition req : sendedRequisitions){
+                if(req.getElectionId()==structure.getElectionId()){
+                    Integer electedNode = pid;
+                    Integer electedNodeCapacity = capacity;
+
+                    for(Message m : structure.getAnswerList()){
+                        if(m.getType()==Message.ACK){
+                            if(electedNodeCapacity==null || (electedNodeCapacity<m.getElectedNodeCapacity())){
+                                electedNode = m.getElectedNode();
+                                electedNodeCapacity = m.getElectedNodeCapacity();
+                            }
+                        }
+                    }
+                    
+                    System.out.println("[Process] O nó "+getElectedNodeName(electedNode)+" foi eleito o lider, com a capacidade " + electedNodeCapacity);
+                }
+            }
+        }
+    }
+    
+    public char getElectedNodeName(int electedNode) {
+        switch(electedNode) {
+            case 1: return 'A';
+            case 2: return 'B';
+            case 3: return 'C';
+            case 4: return 'D';
+            case 5: return 'E';
+            case 6: return 'F';
+            case 7: return 'G';
+            case 8: return 'H';
+            case 9: return 'I';
+            case 10: return 'J';
+        }
+        return ' ';
+    }
+    
+//    private void ackRecebido(ACK ack) {
+//        if(ack.getType()==ACK.ACK){
+//            System.out.println("[Process] Recebeu um ACK de P"+ack.getSenderPid()+" referente à eleição "+ack.getElectionId());
+//        } else {
+//            System.out.println("[Process] Recebeu um NACK de P"+ack.getSenderPid()+" referente à eleição "+ack.getElectionId());
+//        }
+//        sendedRequest.addAck(ack);
+//    }
 }

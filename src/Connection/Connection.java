@@ -19,10 +19,12 @@ public class Connection {
     private Socket connectionSocket;
     private Thread thread;
     private ServerListener serverListener;
+    private int connectionPort;
     
     public Connection(Socket socket, ServerListener listener){
         this.connectionSocket = socket;
         this.serverListener = listener;
+        this.connectionPort = socket.getPort();
     }
     
     public void start() throws Exception{
@@ -37,6 +39,7 @@ public class Connection {
                             close();
                             return;
                         }
+                        System.out.println("[Connection] Informação recebida pela porta "+connectionPort+": "+json);
                         if(serverListener!=null){
                             serverListener.receivePacket(json);
                         }
@@ -48,6 +51,7 @@ public class Connection {
         };
         thread = new Thread(runnable);
         thread.start();
+        //System.out.println("[Connection] Conexão com a porta "+connectionPort+" criada!");
     }
     
     public void close() throws Exception{
@@ -55,6 +59,7 @@ public class Connection {
             thread.interrupt();
             thread.stop();
             connectionSocket.close();
+            //System.out.println("[Connection] Conexão com a porta "+connectionPort+" Finalizada!");
         }
     }
 }

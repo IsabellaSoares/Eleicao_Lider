@@ -8,7 +8,7 @@ package Manager;
 import Listener.MessageManagerListener;
 import Model.ACK;
 import Model.Message;
-import Model.Structure;
+import Model.Requisition;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,65 +20,70 @@ public class MessageManager {
     
     private int pid;
     private MessageManagerListener listener;
-    private List<Structure> messageList; //Lista de mensagens
+    private List<Requisition> requisitionList; //Lista de mensagens
     
     public MessageManager(int pid){
         this.pid = pid;
-        this.messageList = new ArrayList<Structure>();
+        this.requisitionList = new ArrayList<Requisition>();
     }
 
     public void setListener(MessageManagerListener listener) {
         this.listener = listener;
     }
     
-    public synchronized void addMessage(Message message){
+    public synchronized void addMessage(Message message, int sended){
         boolean addedToList = false;
         
-        for(int i=0; i<messageList.size() && !addedToList; i++){
-            Structure currentStructure = messageList.get(i);
+        for(int i=0; i<requisitionList.size() && !addedToList; i++){
+            Requisition currentStructure = requisitionList.get(i);
             if(message.getMessageId()==currentStructure.getMessageId()){
                 // atualiza o item
                 currentStructure.setMessage(message);
+                currentStructure.setSizeOfWaitedAnswer(sended);
                 addedToList = true;
             } else if (message.getMessageId()<currentStructure.getMessageId()){
                 // cria um novo item no meio
-                Structure newStructure = new Structure();
+                Requisition newStructure = new Requisition();
                 newStructure.setMessage(message);
-                messageList.add(i, newStructure);
+                newStructure.setSizeOfWaitedAnswer(sended);
+                requisitionList.add(i, newStructure);
                 addedToList = true;
             }
         }
         
         if(!addedToList){
             // cria um novo item no final
-            Structure e = new Structure();
+            Requisition e = new Requisition();
             e.setMessage(message);
-            messageList.add(e);
+            e.setSizeOfWaitedAnswer(sended);
+            requisitionList.add(e);
         }
+        
+        updateList();
     }
     
-    public synchronized void addAck(ACK ack){
+    public synchronized void addAnswer(Message message){
         boolean addedToList = false;
-        for(int i=0; i<messageList.size() && !addedToList; i++){
-            Structure currentStructure = messageList.get(i);
-            if(ack.getMessageId()==currentStructure.getMessageId()){
+        for(int i=0; i<requisitionList.size() && !addedToList; i++){
+            Requisition currentStructure = requisitionList.get(i);
+            if(message.getMessageId()==currentStructure.getMessageId()){
                 // atualiza o item
-                currentStructure.addACK(ack);
+                currentStructure.addAnswer(message);
                 addedToList = true;
-            } else if (ack.getMessageId()<currentStructure.getMessageId()){
+            } else if (message.getMessageId()<currentStructure.getMessageId()){
                 // cria um novo item no meio
-                Structure newStructure = new Structure();
-                newStructure.addACK(ack);
-                messageList.add(i, newStructure);
+                Requisition newStructure = new Requisition();
+                newStructure.addAnswer(message);
+                requisitionList.add(i, newStructure);
                 addedToList = true;
             }
         }
         
         if(!addedToList){
             // cria um novo item no final
-            Structure e = new Structure();
-            e.addACK(ack);
-            messageList.add(e);
+            Requisition e = new Requisition();
+            e.addAnswer(message);
+            requisitionList.add(e);
         }
         
         updateList();
@@ -87,11 +92,11 @@ public class MessageManager {
     private synchronized void updateList(){
         try{
             boolean removed = true;
-            for(int i=0; i<messageList.size() && removed; i++){
-                Structure currentStructure = messageList.get(i);
-                if(currentStructure.getMessage()!=null && currentStructure.getNumbersOfACK()==2){
+            for(int i=0; i<requisitionList.size() && removed; i++){
+                Requisition currentStructure = requisitionList.get(i);
+                if(currentStructure.getMessage()!=null && currentStructure.getNumberOfReceivedAnswers()==currentStructure.getSizeOfWaitedAnswer()){
                     notifyProcess(currentStructure);
-                    messageList.remove(i--);
+                    requisitionList.remove(i--);
                 } else {
                     removed = false;
                 }
@@ -102,31 +107,31 @@ public class MessageManager {
         }
     }
     
-    public synchronized void notifyProcess(Structure structure){
+    public synchronized void notifyProcess(Requisition structure){
         if(listener!=null){
             listener.notifyProcess(structure);
         }
     }
     
     public synchronized void printList(){
-        for(int i=0; i<messageList.size(); i++){
-            Structure structure = messageList.get(i);
+        for(int i=0; i<requisitionList.size(); i++){
+            Requisition structure = requisitionList.get(i);
             System.out.println("["+i+"] messageId: "+structure.getMessageId()+ " - recurso: " + structure.getRequestedResource());
         }
     }
     
     public boolean isEmpty(){
-        return messageList.isEmpty();
+        return requisitionList.isEmpty();
     }
 
-    public List<Structure> getMessageList() {
-        return messageList;
+    public List<Requisition> getRequisitionList() {
+        return requisitionList;
     }
     
     public Message getMessage(){
         if(!isEmpty()){
-            if(messageList.get(0).getMessage()!=null){
-                return messageList.get(0).getMessage();
+            if(requisitionList.get(0).getMessage()!=null){
+                return requisitionList.get(0).getMessage();
             }
         }
         
@@ -135,9 +140,9 @@ public class MessageManager {
     
     public Message getMessage(int position){
         if(!isEmpty()){
-            if(messageList.size()>position){
-                if(messageList.get(position).getMessage()!=null){
-                    return messageList.get(position).getMessage();
+            if(requisitionList.size()>position){
+                if(requisitionList.get(position).getMessage()!=null){
+                    return requisitionList.get(position).getMessage();
                 }
             }
         }
@@ -146,8 +151,17 @@ public class MessageManager {
     }
     
     public boolean isRequestingFor(int resourceId){
-        for(Structure structure : messageList){
+        for(Requisition structure : requisitionList){
             if(structure.getRequestedResource()==resourceId){
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean existRequisitionFor(Message message){
+        for(Requisition structure : requisitionList){
+            if(structure.getElectionId()==message.getElectionId()){
                 return true;
             }
         }

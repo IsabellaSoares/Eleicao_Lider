@@ -15,8 +15,10 @@ import java.util.List;
  */
 public class Message {
     
-//    public final static int REQUEST_RESOURCE = 0;
-//    public final static int FREE_RESOURCE = 1;
+    public final static int REQUEST_ELECTION = 0;
+    public final static int START_CONNECTIONS = 1;
+    public final static int ACK = 2;
+    public final static int NACK = 3;
     
     private int messageId; //Id da mensagem (<logicalClock><senderPid>)
     private int requestedResource; //Recurso solicitado
@@ -24,6 +26,10 @@ public class Message {
     private int logicalClock; //Refere-se ao clock da mensagem
     private int type; // 0: requisitar um recurso; 1: liberar um recurso; 2: iniciar conexões
     private int senderPort;
+    private int electionId;
+    private int electedNode;
+    private int electedNodeCapacity;
+    private int destinationPid; //Processo que pediu o recurso
 
     public Message(){}
     
@@ -81,5 +87,69 @@ public class Message {
 
     public void setSenderPort(int senderPort) {
         this.senderPort = senderPort;
+    }
+
+    public int getElectionId() {
+        return electionId;
+    }
+
+    public void setElectionId(int electionId) {
+        this.electionId = electionId;
+    }
+
+    public int getElectedNode() {
+        return electedNode;
+    }
+    
+    public char getElectedNodeName() {
+        switch(electedNode) {
+            case 1: return 'A';
+            case 2: return 'B';
+            case 3: return 'C';
+            case 4: return 'D';
+            case 5: return 'E';
+            case 6: return 'F';
+            case 7: return 'G';
+            case 8: return 'H';
+            case 9: return 'I';
+            case 10: return 'J';
+        }
+        return ' ';
+    }
+    
+    public char getSenderPidName() {
+        switch(senderPid) {
+            case 1: return 'A';
+            case 2: return 'B';
+            case 3: return 'C';
+            case 4: return 'D';
+            case 5: return 'E';
+            case 6: return 'F';
+            case 7: return 'G';
+            case 8: return 'H';
+            case 9: return 'I';
+            case 10: return 'J';
+        }
+        return ' ';
+    }
+
+    public void setElectedNode(int electedNode) {
+        this.electedNode = electedNode;
+    }
+
+    public int getElectedNodeCapacity() {
+        return electedNodeCapacity;
+    }
+
+    public void setElectedNodeCapacity(int electedNodeCapacity) {
+        this.electedNodeCapacity = electedNodeCapacity;
+    }
+
+    public int getDestinationPid() {
+        return destinationPid;
+    }
+
+    public void setDestinationPid(int destinationPid) {
+        this.destinationPid = destinationPid;
     }
 }
