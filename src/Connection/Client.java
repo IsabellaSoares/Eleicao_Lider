@@ -51,14 +51,14 @@ public class Client {
                     outToServer.writeBytes(json + '\n');
                     outToServer.flush();
                     sended++;
-                    System.out.println("[Client] 1 Enviou pela porta "+client.getPort()+" a informação: " + json);
+                    //System.out.println("[Client] 1 Enviou pela porta "+client.getPort()+" a informação: " + json);
                 } catch (Exception e) {
                     e.printStackTrace();
                     client.close();
                     socketList.remove(i--);
                 }
             } else {
-                System.out.println("[Client] client ou outToServer null");
+                //System.out.println("[Client] client ou outToServer null");
             }
         }
         return sended;
@@ -77,14 +77,14 @@ public class Client {
                         outToServer.writeBytes(json + '\n');
                         outToServer.flush();
                         sended++;
-                        System.out.println("[Client] 2 Enviou pela porta "+client.getPort()+" a informação: " + json);
+                        //System.out.println("[Client] 2 Enviou pela porta "+client.getPort()+" a informação: " + json);
                     } catch (Exception e) {
                         e.printStackTrace();
                         client.close();
                         socketList.remove(i--);
                     }
                 } else {
-                    System.out.println("[Client] client ou outToServer null");
+                    //System.out.println("[Client] client ou outToServer null");
                 }
             }
         }
@@ -104,14 +104,14 @@ public class Client {
                         outToServer.writeBytes(json + '\n');
                         outToServer.flush();
                         sended++;
-                        System.out.println("[Client] 3 Enviou pela porta "+client.getPort()+" a informação: " + json);
+                        //System.out.println("[Client] 3 Enviou pela porta "+client.getPort()+" a informação: " + json);
                     } catch (Exception e) {
                         e.printStackTrace();
                         client.close();
                         socketList.remove(i--);
                     }
                 } else {
-                    System.out.println("[Client] client ou outToServer null");
+                    //System.out.println("[Client] client ou outToServer null");
                 }
             }
         }

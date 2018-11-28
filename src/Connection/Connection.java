@@ -39,7 +39,7 @@ public class Connection {
                             close();
                             return;
                         }
-                        System.out.println("[Connection] Informação recebida pela porta "+connectionPort+": "+json);
+                        //System.out.println("[Connection] Informação recebida pela porta "+connectionPort+": "+json);
                         if(serverListener!=null){
                             serverListener.receivePacket(json);
                         }

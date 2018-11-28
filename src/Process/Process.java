@@ -38,6 +38,7 @@ public class Process {
     private static ConnectionManager manager;
     private static MessageManager sendedRequest;
     private static MessageManager receivedRequest;
+    private static MessageManager receivedResult;
     
     private static Scanner keyboard;
     private static Integer father;
@@ -55,7 +56,9 @@ public class Process {
         this.keyboard = new Scanner(System.in);
         this.manager = new ConnectionManager(serverPort); //Gerenciador de conexão
         this.sendedRequest = new MessageManager(pid);
+        this.sendedRequest.setCanRemoveRequisition(true);
         this.receivedRequest = new MessageManager(pid);
+        this.receivedResult = new MessageManager(pid);
         
         // inicializa os listeners
         // quando uma mensagem enviada recebe todos os acks, esse listener eh chamado
@@ -63,6 +66,13 @@ public class Process {
             @Override
             public void notifyProcess(Requisition requisition) {
                 notificaProcesso(requisition);
+            }
+        });
+        
+        this.receivedResult.setListener(new MessageManagerListener() {
+            @Override
+            public void notifyProcess(Requisition requisition) {
+                System.out.println("[Process] Todos receberam a informação do nó eleito");
             }
         });
         
@@ -108,6 +118,18 @@ public class Process {
                         break;
                     case 2:
                         changeCapacity();
+                        break;
+                    case 3:
+//                        Message m = new Message(Message.RESULT_MESSAGE, pid, ++currentLogicalClock, serverPort);
+//                        m.setElectionId(m.getMessageId());
+//                        m.setElectedNode(5);
+//                        m.setElectedNodeCapacity(5);
+//                        try{
+//                            manager.sendMessageToAll(m);
+//                            receivedResult.addMessage(m, connectionPorts.length);
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
                         break;
                 }
             }
@@ -216,6 +238,16 @@ public class Process {
                 System.out.println("[Process] Recebeu um NACK do nó "+message.getSenderPidName());
                 sendedRequest.addAnswer(message);
                 break;
+            case Message.RESULT_MESSAGE:
+                //System.out.println("[Process] Recebeu um resultado do nó "+message.getSenderPidName());
+                if(!receivedResult.existRequisitionFor(message)){
+                    System.out.println("[Process] O nó "+message.getElectedNodeName()+" foi eleito o lider, com a capacidade " + message.getElectedNodeCapacity());
+                    receivedResult.addMessage(message, (connectionPorts.length-1));
+                    sendResultMessage(message);
+                } else {
+                    receivedResult.addAnswer(message);
+                }
+                break;
         }
     }
     
@@ -274,6 +306,16 @@ public class Process {
                     }
                     
                     System.out.println("[Process] O nó "+getElectedNodeName(electedNode)+" foi eleito o lider, com a capacidade " + electedNodeCapacity);
+                    Message m = new Message(Message.RESULT_MESSAGE, pid, ++currentLogicalClock, serverPort);
+                    m.setElectionId(m.getMessageId());
+                    m.setElectedNode(electedNode);
+                    m.setElectedNodeCapacity(electedNodeCapacity);
+                    try{
+                        manager.sendMessageToAll(m);
+                        receivedResult.addMessage(m, connectionPorts.length);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -294,13 +336,17 @@ public class Process {
         }
         return ' ';
     }
-    
-//    private void ackRecebido(ACK ack) {
-//        if(ack.getType()==ACK.ACK){
-//            System.out.println("[Process] Recebeu um ACK de P"+ack.getSenderPid()+" referente à eleição "+ack.getElectionId());
-//        } else {
-//            System.out.println("[Process] Recebeu um NACK de P"+ack.getSenderPid()+" referente à eleição "+ack.getElectionId());
-//        }
-//        sendedRequest.addAck(ack);
-//    }
+
+    public void sendResultMessage(Message message){
+        Message m = new Message(Message.RESULT_MESSAGE, pid, ++currentLogicalClock, serverPort);
+        m.setElectionId(message.getElectionId());
+        m.setElectedNode(message.getElectedNode());
+        m.setElectedNodeCapacity(message.getElectedNodeCapacity());
+        try{
+            //manager.sendMessageToAll(m);
+            manager.sendMessageExceptToPort(m, message.getSenderPort());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

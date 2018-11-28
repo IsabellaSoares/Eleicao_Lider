@@ -19,6 +19,7 @@ public class Message {
     public final static int START_CONNECTIONS = 1;
     public final static int ACK = 2;
     public final static int NACK = 3;
+    public final static int RESULT_MESSAGE = 4;
     
     private int messageId; //Id da mensagem (<logicalClock><senderPid>)
     private int requestedResource; //Recurso solicitado

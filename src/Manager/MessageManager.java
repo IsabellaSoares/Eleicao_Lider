@@ -21,10 +21,16 @@ public class MessageManager {
     private int pid;
     private MessageManagerListener listener;
     private List<Requisition> requisitionList; //Lista de mensagens
+    private boolean canRemoveRequisition;
     
     public MessageManager(int pid){
         this.pid = pid;
         this.requisitionList = new ArrayList<Requisition>();
+        this.canRemoveRequisition = false;
+    }
+
+    public void setCanRemoveRequisition(boolean canRemoveRequisition) {
+        this.canRemoveRequisition = canRemoveRequisition;
     }
 
     public void setListener(MessageManagerListener listener) {
@@ -90,6 +96,9 @@ public class MessageManager {
     }
     
     private synchronized void updateList(){
+        if(!canRemoveRequisition){
+            return;
+        }
         try{
             boolean removed = true;
             for(int i=0; i<requisitionList.size() && removed; i++){
