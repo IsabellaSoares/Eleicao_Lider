@@ -1,0 +1,19 @@
+Iniciar conexões: 1 (deve ser feito APENAS no nó A, esse comando é responsável por estabelecer
+conexão entre todos os nós da topologia)
+
+Requisitar eleição: 1 (pode ser feito em qualquer nó)
+	-- A eleição ocorre em duas etapas. A primeira etapa é uma eleição única. Após anunciado o
+nó eleito, os nós esperam 5 segundos e então uma nova eleição é disparada automaticamente. Essa
+nova eleição é feita de maneira concorrente, sendo assim, dois nós diferentes da topologia
+requisitam uma nova eleição ao mesmo tempo (nós A e C). Ao fim das duas eleições é anunciado o novo
+líder.
+
+Alterar capacidade: 2 (ENTER) <nova capacidade> (ENTER)
+
+Pausar processos: 3
+	-- Após a realização das primeiras eleições (individual e concorrentes), as eleições seguintes
+serão realizar de maneira unitária. Caso haja a necessidade de realizar uma nova tentativa de eleição
+concorrente, é preciso reiniciar as variáveis dos nós A e C que realizam a concorrência. Para isso,
+é necessário pausar ambos os processos (A e C), os quais apresentarão um log ["Processo pausado"]. Feito
+isso, ao requisitar uma nova eleição será feita uma primeira eleição individual e uma segunda eleição
+automática concorrente.
